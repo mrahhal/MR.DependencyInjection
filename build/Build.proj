@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build;Test;Package" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<Major>1</Major>
+		<Minor>0</Minor>
+		<Patch>0</Patch>
+		<Build>0</Build>
+		<Quality></Quality>
+		<AssemblyProduct>MR.DependencyInjection</AssemblyProduct>
+		<AssemblyCompany>Mohammad Rahhal</AssemblyCompany>
+		<AssemblyCopyright>Copyright (c) 2015</AssemblyCopyright>
+		<BuildType Condition="'$(BuildType)' == ''">Dev</BuildType>
+		<BuildType Condition="'$(APPVEYOR_REPO_TAG)' == 'true'">Release</BuildType>
+
+		<Version>$(Major).$(Minor).$(Patch)</Version>
+		<FullVersion>$(Version).$(Build)</FullVersion>
+		<QualityWithDash Condition="'$(Quality)' != ''">-$(Quality)</QualityWithDash>
+		<InformationalVersion>$(Version)$(QualityWithDash)</InformationalVersion>
+
+		<RootDir>$(MSBuildProjectDirectory)/../</RootDir>
+		<SolutionFile>$(RootDir)MR.DependencyInjection.sln</SolutionFile>
+		<PackageOutputDir>$(RootDir)artifacts/packages/</PackageOutputDir>
+	</PropertyGroup>
+	<ItemGroup>
+		<Assemblies Include="MR.DependencyInjection.Abstractions" />
+		<Assemblies Include="MR.DependencyInjection.Autofac" />
+
+		<!--<TestAssemblies Include="" />-->
+	</ItemGroup>
+	<Import Project="Build.tasks" />
+
+	<Target Name="GenerateVersionInfo" BeforeTargets="Build">
+		<MakeDir Directories="$(RootDir)src/Common" ContinueOnError="true" />
+		<MakeDir Directories="$(PackageOutputDir)" ContinueOnError="true" />
+		<Time Format="HHmmyyyyMMdd">
+			<Output TaskParameter="FormattedTime" PropertyName="Date" />
+		</Time>
+		<PropertyGroup>
+			<!--<InfoVersion Condition="'$(BuildType)' == 'Release'">$(InformationalVersion)</InfoVersion>-->
+			<InfoVersion Condition="'$(BuildType)' == 'Release'">$(InformationalVersion)</InfoVersion>
+			<InfoVersion Condition="'$(BuildType)' != 'Release'">$(InformationalVersion)-d-$(Date)</InfoVersion>
+		</PropertyGroup>
+		<AssemblyInfo OutputFile="$(RootDir)src/Common/AssemblyInfo.Common.cs"
+					  AssemblyProduct="$(AssemblyProduct)"
+					  AssemblyCompany="$(AssemblyCompany)"
+					  AssemblyCopyright="$(AssemblyCopyright)"
+					  AssemblyVersion="$(Version)"
+					  AssemblyFileVersion="$(FullVersion)"
+					  AssemblyInformationalVersion="$(InfoVersion)" />
+		<Message Importance="High" Text="$(InfoVersion)" />
+	</Target>
+	<Target Name="Build" DependsOnTargets="RestorePackages">
+		<MSBuild Projects="$(SolutionFile)" Targets="Rebuild" Properties="Configuration=Release;NoWarn=CS1591,CS1574" ToolsVersion="14.0" />
+	</Target>
+	<Target Name="RestorePackages" DependsOnTargets="Clean">
+		<Exec
+			WorkingDirectory="$(RootDir)"
+			Command="nuget restore MR.DependencyInjection.sln" />
+	</Target>
+	<Target Name="Clean">
+		<Exec
+			WorkingDirectory="$(RootDir)"
+			Command="rmdir artifacts /s /q" ContinueOnError="true" />
+	</Target>
+	<Target Name="Test" DependsOnTargets="Build">
+		<!--<Exec
+			WorkingDirectory="$(RootDir)"
+			Command="packages\xunit.runner.console.2.1.0\tools\xunit.console test\%(TestAssemblies.Identity)\bin\Debug\%(TestAssemblies.Identity).dll" />-->
+	</Target>
+	<Target Name="Package" DependsOnTargets="Build;Test">
+		<MakeDir Directories="$(RootDir)artifacts/packages" />
+		<Exec
+			WorkingDirectory="$(RootDir)"
+			Command="nuget pack src\%(Assemblies.Identity)\%(Assemblies.Identity).csproj -IncludeReferencedProjects -Symbols -Prop Configuration=Release -OutputDirectory artifacts/packages" />
+	</Target>
+</Project>
