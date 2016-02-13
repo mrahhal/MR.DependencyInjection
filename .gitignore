@@ -214,5 +214,6 @@ pip-log.txt
 
 #############
 
+.vs/
 artifacts/
 src/Common/AssemblyInfo.Common.cs
